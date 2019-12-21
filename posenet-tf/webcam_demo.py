@@ -2,6 +2,8 @@ import tensorflow as tf
 import cv2
 import time
 import argparse
+import statistics
+import sys
 
 import posenet
 
@@ -29,35 +31,72 @@ def main():
 
         start = time.time()
         frame_count = 0
-        while True:
-            input_image, display_image, output_scale = posenet.read_cap(
-                cap, scale_factor=args.scale_factor, output_stride=output_stride)
+        rep_count = 0
+        keypoints_detected = []
+        try:
+            up_rep = False
+            down_rep = False
+            mid_rep = False
+            while True:
+                input_image, display_image, output_scale = posenet.read_cap(
+                    cap, scale_factor=args.scale_factor, output_stride=output_stride)
 
-            heatmaps_result, offsets_result, displacement_fwd_result, displacement_bwd_result = sess.run(
-                model_outputs,
-                feed_dict={'image:0': input_image}
-            )
+                heatmaps_result, offsets_result, displacement_fwd_result, displacement_bwd_result = sess.run(
+                    model_outputs,
+                    feed_dict={'image:0': input_image}
+                )
 
-            pose_scores, keypoint_scores, keypoint_coords = posenet.decode_multi.decode_multiple_poses(
-                heatmaps_result.squeeze(axis=0),
-                offsets_result.squeeze(axis=0),
-                displacement_fwd_result.squeeze(axis=0),
-                displacement_bwd_result.squeeze(axis=0),
-                output_stride=output_stride,
-                max_pose_detections=10,
-                min_pose_score=0.15)
+                pose_scores, keypoint_scores, keypoint_coords = posenet.decode_multi.decode_multiple_poses(
+                    heatmaps_result.squeeze(axis=0),
+                    offsets_result.squeeze(axis=0),
+                    displacement_fwd_result.squeeze(axis=0),
+                    displacement_bwd_result.squeeze(axis=0),
+                    output_stride=output_stride,
+                    max_pose_detections=10,
+                    min_pose_score=0.15)
 
-            keypoint_coords *= output_scale
+                keypoint_coords *= output_scale
 
-            # TODO this isn't particularly fast, use GL for drawing and display someday...
-            overlay_image = posenet.draw_skel_and_kp(
-                display_image, pose_scores, keypoint_scores, keypoint_coords,
-                min_pose_score=0.15, min_part_score=0.1)
+                overlay_image, num_keypoints_detected, people_location = posenet.draw_skel_and_kp(
+                    display_image, pose_scores, keypoint_scores, keypoint_coords,
+                    min_pose_score=0.40, min_part_score=0.15)
 
-            cv2.imshow('posenet', overlay_image)
-            frame_count += 1
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                keypoints_detected.append(num_keypoints_detected)
+
+                for i in people_location:
+                    labeled_keypoints = posenet.label_and_return_keypoints(i)
+
+                    # Figure out the phase in the motion
+                    if labeled_keypoints["rightWrist"][1] < 160:
+                        current_motion = "Up"
+                        up_rep = True
+                    elif labeled_keypoints["rightWrist"][1] > 200:
+                        current_motion = "Down"
+                        down_rep = True
+                    else:
+                        current_motion = "Mid-rep"
+                        mid_rep = True
+
+                    # If all three phases we're encountered print a rep
+                    if up_rep is True and down_rep is True and mid_rep is True:
+                        if current_motion == "Down":
+                            rep_count += 1
+                        up_rep = False
+                        down_rep = False
+                        mid_rep = False
+
+                cv2.putText(overlay_image, 'Rep count: {}'.format(rep_count), (53, 500), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.imshow('', overlay_image)
+                frame_count += 1
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+        except:
+            print("Pose accuracy was an average of {}".format(statistics.mean(keypoints_detected)))
+            missing_keypoints = len(keypoints_detected) - keypoints_detected.count(17)
+            print("{} of the {} frames are missing atleast one keypoint".format(missing_keypoints,
+                                                                                len(keypoints_detected)))
 
         print('Average FPS: ', frame_count / (time.time() - start))
 

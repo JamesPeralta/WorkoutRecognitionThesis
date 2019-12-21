@@ -2,6 +2,28 @@ import cv2
 import numpy as np
 
 import posenet.constants
+from skimage import data, img_as_float
+from skimage import exposure
+
+keypoints_list = [
+    "nose", #1
+    "leftEye", #2
+    "rightEye", #3
+    "leftEar", #4
+    "rightEar", #5
+    "leftShoulder", #6
+    "rightShoulder", #7
+    "leftElbow", #8
+    "rightElbow", #9
+    "leftWrist", #10
+    "rightWrist", #11
+    "leftHip", #12
+    "rightHip", #13
+    "leftKnee", #14
+    "rightKnee", #15
+    "leftAnkle", #16
+    "rightAnkle", #17
+]
 
 
 def valid_resolution(width, height, output_stride=16):
@@ -17,15 +39,21 @@ def _process_input(source_img, scale_factor=1.0, output_stride=16):
 
     input_img = cv2.resize(source_img, (target_width, target_height), interpolation=cv2.INTER_LINEAR)
     input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB).astype(np.float32)
-    input_img = input_img * (2.0 / 255.0) - 1.0
+    # input_img = input_img * (2.0 / 255.0) - 1.0
+    input_img = input_img / 255.0
     input_img = input_img.reshape(1, target_height, target_width, 3)
     return input_img, source_img, scale
 
 
 def read_cap(cap, scale_factor=1.0, output_stride=16):
     res, img = cap.read()
+
     if not res:
         raise IOError("webcam failure")
+
+    img = cv2.resize(img, (528, 280))
+    img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+
     return _process_input(img, scale_factor, output_stride)
 
 
@@ -78,9 +106,19 @@ def draw_skeleton(
 def draw_skel_and_kp(
         img, instance_scores, keypoint_scores, keypoint_coords,
         min_pose_score=0.5, min_part_score=0.5):
+    """
+    This function takes in possible detections of poses and filters the poses
+    based on the min_pose_score and filters each part based on the min_part_score
+
+    :return out_img: The image with key points drawn on
+    :return num_key_points_detected: Number of keypoints detected from frame (17 per person)
+    :return people_location: Coordinates of people after filter
+    """
     out_img = img
     adjacent_keypoints = []
     cv_keypoints = []
+    num_keypoints_detected = 0
+    people_location = []
     for ii, score in enumerate(instance_scores):
         if score < min_pose_score:
             continue
@@ -89,13 +127,46 @@ def draw_skel_and_kp(
             keypoint_scores[ii, :], keypoint_coords[ii, :, :], min_part_score)
         adjacent_keypoints.extend(new_keypoints)
 
+        people_location.append(keypoint_coords[ii, :, ::-1])
         for ks, kc in zip(keypoint_scores[ii, :], keypoint_coords[ii, :, :]):
             if ks < min_part_score:
                 continue
             cv_keypoints.append(cv2.KeyPoint(kc[1], kc[0], 10. * ks))
+            num_keypoints_detected += 1
 
     out_img = cv2.drawKeypoints(
         out_img, cv_keypoints, outImage=np.array([]), color=(255, 255, 0),
         flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     out_img = cv2.polylines(out_img, adjacent_keypoints, isClosed=False, color=(255, 255, 0))
-    return out_img
+    return out_img, num_keypoints_detected, people_location
+
+
+def label_and_return_keypoints(people_location):
+    keypoint_coord_dict = {}
+    for part, coords in list(zip(keypoints_list, people_location)):
+        keypoint_coord_dict[part] = coords
+    return keypoint_coord_dict
+
+
+def draw_coord_grid(overlay_image):
+    """
+    Draws coordinate grid on the image
+    :return:
+    """
+    GRID_SIZE = 20
+    height, width, channels = overlay_image.shape
+
+    # Print x-axis lines
+    for x in range(0, width - 1, GRID_SIZE):
+        cv2.line(overlay_image, (x, 0), (x, height), (255, 0, 0), 1, 1)
+        number = str(x)
+        for ind, char in enumerate(number):
+            cv2.putText(overlay_image, char, (x, 12 + (ind * 14)), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0),
+                        2, cv2.LINE_AA)
+    # Print y-axis lines
+    for y in range(0, height - 1, GRID_SIZE):
+        cv2.line(overlay_image, (0, y), (width, y), (255, 0, 0), 1, 1)
+        cv2.putText(overlay_image, str(y), (0, y + 3), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0),
+                    2, cv2.LINE_AA)
+
+    return overlay_image
