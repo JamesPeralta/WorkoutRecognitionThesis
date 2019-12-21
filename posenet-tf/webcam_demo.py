@@ -4,8 +4,11 @@ import time
 import argparse
 import statistics
 import sys
-
 import posenet
+
+# CONSTANTS
+MIN_POSE_SCORE = 0.50
+MIN_KEYPOINT_SCORE = 0
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=int, default=101)
@@ -59,7 +62,7 @@ def main():
 
                 overlay_image, num_keypoints_detected, people_location = posenet.draw_skel_and_kp(
                     display_image, pose_scores, keypoint_scores, keypoint_coords,
-                    min_pose_score=0.40, min_part_score=0.15)
+                    min_pose_score=MIN_POSE_SCORE, min_part_score=MIN_KEYPOINT_SCORE)
 
                 keypoints_detected.append(num_keypoints_detected)
 
@@ -67,10 +70,10 @@ def main():
                     labeled_keypoints = posenet.label_and_return_keypoints(i)
 
                     # Figure out the phase in the motion
-                    if labeled_keypoints["rightWrist"][1] < 160:
+                    if labeled_keypoints["rightEye"][1] < 220:
                         current_motion = "Up"
                         up_rep = True
-                    elif labeled_keypoints["rightWrist"][1] > 200:
+                    elif labeled_keypoints["rightEye"][1] > 280:
                         current_motion = "Down"
                         down_rep = True
                     else:
@@ -94,8 +97,11 @@ def main():
 
         except:
             print("Pose accuracy was an average of {}".format(statistics.mean(keypoints_detected)))
-            missing_keypoints = len(keypoints_detected) - keypoints_detected.count(17)
+            missing_keypoints = len([i for i in keypoints_detected if i < 17])
+            extra_keypoints = len([i for i in keypoints_detected if i > 17])
             print("{} of the {} frames are missing atleast one keypoint".format(missing_keypoints,
+                                                                                len(keypoints_detected)))
+            print("{} of the {} frames have atleast one extra keypoint".format(extra_keypoints,
                                                                                 len(keypoints_detected)))
 
         print('Average FPS: ', frame_count / (time.time() - start))
