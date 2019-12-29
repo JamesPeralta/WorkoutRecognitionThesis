@@ -138,7 +138,11 @@ def draw_skel_and_kp(
         out_img, cv_keypoints, outImage=np.array([]), color=(255, 255, 0),
         flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     out_img = cv2.polylines(out_img, adjacent_keypoints, isClosed=False, color=(255, 255, 0))
-    return out_img, num_keypoints_detected, people_location
+
+    # Need to know the number of people in the image to filter
+    # for difficulty based on the amount of people detected
+    num_of_people_detected = len(people_location)
+    return out_img, num_keypoints_detected, people_location, num_of_people_detected
 
 
 def label_and_return_keypoints(people_location):

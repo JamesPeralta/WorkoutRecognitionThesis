@@ -5,9 +5,10 @@ import argparse
 import statistics
 import sys
 import posenet
+import pandas as pd
 
 # CONSTANTS
-MIN_POSE_SCORE = 0.50
+MIN_POSE_SCORE = 0.40
 MIN_KEYPOINT_SCORE = 0
 
 parser = argparse.ArgumentParser()
@@ -36,6 +37,8 @@ def main():
         frame_count = 0
         rep_count = 0
         keypoints_detected = []
+        people_detected = []
+        all_keypoints_detected = []
         try:
             up_rep = False
             down_rep = False
@@ -56,24 +59,25 @@ def main():
                     displacement_bwd_result.squeeze(axis=0),
                     output_stride=output_stride,
                     max_pose_detections=10,
-                    min_pose_score=0.15)
+                    min_pose_score=MIN_POSE_SCORE)
 
                 keypoint_coords *= output_scale
 
-                overlay_image, num_keypoints_detected, people_location = posenet.draw_skel_and_kp(
+                overlay_image, num_keypoints_detected, people_location, num_of_people_detected = posenet.draw_skel_and_kp(
                     display_image, pose_scores, keypoint_scores, keypoint_coords,
                     min_pose_score=MIN_POSE_SCORE, min_part_score=MIN_KEYPOINT_SCORE)
 
                 keypoints_detected.append(num_keypoints_detected)
-
+                people_detected.append(num_of_people_detected)
                 for i in people_location:
+                    all_keypoints_detected.append([i, "Overhead_Press"])
                     labeled_keypoints = posenet.label_and_return_keypoints(i)
 
                     # Figure out the phase in the motion
-                    if labeled_keypoints["rightEye"][1] < 220:
+                    if labeled_keypoints["rightWrist"][1] < 160:
                         current_motion = "Up"
                         up_rep = True
-                    elif labeled_keypoints["rightEye"][1] > 280:
+                    elif labeled_keypoints["rightWrist"][1] > 200:
                         current_motion = "Down"
                         down_rep = True
                     else:
@@ -103,9 +107,12 @@ def main():
                                                                                 len(keypoints_detected)))
             print("{} of the {} frames have atleast one extra keypoint".format(extra_keypoints,
                                                                                 len(keypoints_detected)))
+            print("There were at most {} person(s) detected in this video".format(max(people_detected)))
 
         print('Average FPS: ', frame_count / (time.time() - start))
-
+        # Create the pandas DataFrame
+        df = pd.DataFrame(all_keypoints_detected, columns=['keypoints', 'label'])
+        print(type(df.iloc[0]["keypoints"]))
 
 if __name__ == "__main__":
     main()
