@@ -1,0 +1,16 @@
+# Developer environments
+.idea
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# IPython Notebook
+.ipynb_checkpoints
+
+# Virtualenv
+venv/
+ENV/
+
+# Model data
+*.h5
