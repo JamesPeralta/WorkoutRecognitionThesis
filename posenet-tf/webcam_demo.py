@@ -10,7 +10,7 @@ import os
 import re
 
 # CONSTANTS
-MIN_POSE_SCORE = 0.40
+MIN_POSE_SCORE = 0.45
 MIN_KEYPOINT_SCORE = 0
 
 parser = argparse.ArgumentParser()
@@ -29,7 +29,7 @@ def main():
         model_cfg, model_outputs = posenet.load_model(args.model, sess)
         output_stride = model_cfg['output_stride']
 
-        training_data = "../video_dataset/train"
+        training_data = "../video_dataset/test"
         training_videos = os.listdir(training_data)
         print(training_videos)
 
