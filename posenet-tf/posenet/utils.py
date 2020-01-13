@@ -4,6 +4,7 @@ import numpy as np
 import posenet.constants
 from skimage import data, img_as_float
 from skimage import exposure
+from joblib import dump, load
 
 keypoints_list = [
     "nose", #1
@@ -24,6 +25,10 @@ keypoints_list = [
     "leftAnkle", #16
     "rightAnkle", #17
 ]
+
+model = load('./_models/svm_workout_detector.joblib')
+x_scaler = load('./_models/x_scaler.save')
+y_scaler = load('./_models/y_scaler.save')
 
 
 def valid_resolution(width, height, output_stride=16):
@@ -174,3 +179,28 @@ def draw_coord_grid(overlay_image):
                     2, cv2.LINE_AA)
 
     return overlay_image
+
+
+def detect_workout_type(person_keypoints):
+    if str(person_keypoints.shape) == "(17, 2)":
+        # Add the batch dimension
+        person_keypoints = np.expand_dims(person_keypoints, axis=0)
+
+        # Scale the x axis keypoints
+        person_keypoints[:, :, 0] = x_scaler.transform(person_keypoints[:, :, 0])
+
+        # Scale the y axis keypoints
+        person_keypoints[:, :, 1] = y_scaler.transform(person_keypoints[:, :, 1])
+
+        # Reshape the keypoints
+        person_keypoints = person_keypoints.reshape((person_keypoints.shape[0], person_keypoints.shape[1] * person_keypoints.shape[2]))
+
+        # Predict on the Keypoint
+        prediction = model.predict(person_keypoints)[0]
+
+        if prediction == 0:
+            return "ohp"
+        elif prediction == 1:
+            return "squats"
+
+    return "Don't know"
