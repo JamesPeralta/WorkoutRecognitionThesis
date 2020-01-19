@@ -57,7 +57,9 @@ def read_cap(cap, scale_factor=1.0, output_stride=16):
         raise IOError("webcam failure")
 
     img = cv2.resize(img, (528, 280))
-    img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+    img = img[40:260, 100:440, :]
+    # img = img[100:440, 40:260, :]
+    # img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
 
     return _process_input(img, scale_factor, output_stride)
 
@@ -148,6 +150,34 @@ def draw_skel_and_kp(
     # for difficulty based on the amount of people detected
     num_of_people_detected = len(people_location)
     return out_img, num_keypoints_detected, people_location, num_of_people_detected
+
+
+def draw_bounding_box(overlay_image, person):
+    """
+    This function takes as input the co-ordinates of a person after
+    the keypoint extractor is applied and then returns a bounding box
+    around the user detected
+    """
+    # Grab all x-coordinates of the user
+    x_axis = person[:, 0]
+    # Grab all y-coordinates of the user
+    y_axis = person[:, 1]
+
+    # obtain max and mins for each axis
+    x_min = int(x_axis.min())
+    x_max = int(x_axis.max())
+    y_min = int(y_axis.min())
+    y_max = int(y_axis.max())
+
+    overlay_image = cv2.line(overlay_image, (x_min, y_min), (x_max, y_min), (255, 0, 0), 2)
+    # Right
+    overlay_image = cv2.line(overlay_image, (x_max, y_min), (x_max, y_max), (255, 0, 0), 2)
+    # Bottom
+    overlay_image = cv2.line(overlay_image, (x_min, y_max), (x_max, y_max), (255, 0, 0), 2)
+    # Left
+    overlay_image = cv2.line(overlay_image, (x_min, y_min), (x_min, y_max), (255, 0, 0), 2)
+
+    return overlay_image
 
 
 def label_and_return_keypoints(people_location):
