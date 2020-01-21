@@ -4,6 +4,8 @@ import time
 import argparse
 import statistics
 import posenet
+import pandas as pd
+import os
 
 # CONSTANTS
 MIN_POSE_SCORE = 0.45
@@ -16,6 +18,7 @@ parser.add_argument('--cam_width', type=int, default=1280)
 parser.add_argument('--cam_height', type=int, default=720)
 parser.add_argument('--scale_factor', type=float, default=0.7125)
 parser.add_argument('--file', type=str, default=None, help="Optionally use a video file instead of a live camera")
+parser.add_argument('--csv_loc', type=str, default=None)
 args = parser.parse_args()
 
 
@@ -36,7 +39,16 @@ def main():
         rep_count = 0
         keypoints_detected = []
         people_detected = []
+        all_keypoints_detected = []
+
+        # These variables are used to calculate
+        # the rate of change for counting reps
+        count = 0
+        past = None
+        present = None
         try:
+            up_rep = False
+            down_rep = False
             while True:
                 # Read image
                 input_image, display_image, output_scale = posenet.read_cap(
@@ -73,16 +85,43 @@ def main():
                 # Display workout type
                 prediction = ""
                 for i in people_location:
-                    prediction = posenet.detect_workout_type(i)
-                cv2.putText(overlay_image, "Workout: {}".format(prediction), (53, 475), cv2.FONT_HERSHEY_SIMPLEX,
-                            0.8, (255, 255, 255), 2, cv2.LINE_AA)
+                    all_keypoints_detected.append([i])  # Remove
+                    if past is None:
+                        past = i
+                    elif count % 20 == 0:
+                        present = i
+
+                        # Calculate the rate of change
+                        result = posenet.rate_of_change(past, present)
+
+                        if result == "Up":
+                            up_rep = True
+                        elif result == "Down":
+                            down_rep = True
+                        else:
+                            if up_rep is True and down_rep is True:
+                                rep_count += 1
+                                up_rep = False
+                                down_rep = False
+
+                        # Reset variables
+                        past = None
+                        present = None
+                        count = -1
+
+                overlay_image = cv2.rectangle(overlay_image, (20 - 15, 380), (145 - 15, 440), (255, 255, 255), -1)
+                prediction = "One-hand OHP"#posenet.detect_workout_type(i)
+                cv2.putText(overlay_image, "{}".format(prediction), (8, 395 + 5), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, (0, 0, 0), 1, cv2.LINE_AA)
 
                 # Display rep count
-                cv2.putText(overlay_image, 'Rep count: {}'.format(rep_count), (53, 500), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
-                            (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(overlay_image, 'Rep count: {}'.format(rep_count), (8, 420 + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                            (0, 0, 0), 1, cv2.LINE_AA)
+                # overlay_image = posenet.draw_coord_grid(overlay_image)
                 cv2.imshow('', overlay_image)
 
                 # Store data needed to print final summaries
+                count += 1
                 frame_count += 1
                 keypoints_detected.append(num_keypoints_detected)
                 people_detected.append(num_of_people_detected)
@@ -99,9 +138,14 @@ def main():
                                                                                 len(keypoints_detected)))
             print("There were at most {} person(s) detected in this video".format(max(people_detected)))
 
+        print("The video contained {} frames".format(frame_count))
         print('Average FPS: ', frame_count / (time.time() - start))
+
+        # writing to file
+        print("Writing to file")
+        df = pd.DataFrame(all_keypoints_detected, columns=['keypoints'])
+        df.to_csv(args.csv_loc, header=['keypoints'])
 
 
 if __name__ == "__main__":
     main()
-

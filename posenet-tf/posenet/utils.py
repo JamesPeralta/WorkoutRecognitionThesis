@@ -29,6 +29,7 @@ keypoints_list = [
 model = load('./_models/svm_workout_detector.joblib')
 x_scaler = load('./_models/x_scaler.save')
 y_scaler = load('./_models/y_scaler.save')
+resize_factor = 0.4
 
 
 def valid_resolution(width, height, output_stride=16):
@@ -56,10 +57,15 @@ def read_cap(cap, scale_factor=1.0, output_stride=16):
     if not res:
         raise IOError("webcam failure")
 
-    img = cv2.resize(img, (528, 280))
-    img = img[40:260, 100:440, :]
-    # img = img[100:440, 40:260, :]
-    # img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+    # img = img[70:, 200: 500, :]
+    # img = img[120:660, 120: 560, :]
+    # img = img[:, 160: 500, :]
+    # img = img[70:, 200: 500, :]
+    height = int(img.shape[1] * resize_factor)
+    width = int(img.shape[0] * resize_factor)
+    img = cv2.rotate(img, cv2.ROTATE_180)
+    img = cv2.resize(img, (height, width), interpolation=cv2.INTER_LINEAR)
+    img = img[:, 280: 480, :]
 
     return _process_input(img, scale_factor, output_stride)
 
@@ -234,3 +240,31 @@ def detect_workout_type(person_keypoints):
             return "squats"
 
     return "Don't know"
+
+
+def rate_of_change(past_keypoints, present_keypoints):
+    increasing = False
+    decreasing = False
+    for index in range(0, len(keypoints_list)):
+        # Retrieve datapoint for a body part
+        past = past_keypoints[index, 1]
+        present = present_keypoints[index, 1]
+
+        # Calculate growth rates
+        growth_rate = (present - past) / past
+        if growth_rate > 0.3:
+            increasing = True
+            break
+
+        # Calculate decay rates
+        decay_rate = (past - present) / present
+        if decay_rate > 0.3:
+            decreasing = True
+            break
+
+    if increasing is False and decreasing is False:
+        return "Still"
+    elif increasing is True:
+        return "Up"
+    else:
+        return "Down"
