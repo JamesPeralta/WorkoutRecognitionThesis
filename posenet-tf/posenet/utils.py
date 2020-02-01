@@ -29,7 +29,7 @@ keypoints_list = [
 model = load('./_models/svm_workout_detector.joblib')
 x_scaler = load('./_models/x_scaler.save')
 y_scaler = load('./_models/y_scaler.save')
-resize_factor = 0.4
+resize_factor = 0.7
 
 
 def valid_resolution(width, height, output_stride=16):
@@ -57,15 +57,17 @@ def read_cap(cap, scale_factor=1.0, output_stride=16):
     if not res:
         raise IOError("webcam failure")
 
-    # img = img[70:, 200: 500, :]
-    # img = img[120:660, 120: 560, :]
-    # img = img[:, 160: 500, :]
-    # img = img[70:, 200: 500, :]
     height = int(img.shape[1] * resize_factor)
     width = int(img.shape[0] * resize_factor)
-    img = cv2.rotate(img, cv2.ROTATE_180)
-    img = cv2.resize(img, (height, width), interpolation=cv2.INTER_LINEAR)
-    img = img[:, 280: 480, :]
+    img = cv2.resize(img, (height, width))
+    img = img[:, 80:400, :]
+
+    # LEAVE IN
+    # height = int(img.shape[1] * resize_factor)
+    # width = int(img.shape[0] * resize_factor)
+    # img = cv2.rotate(img, cv2.ROTATE_180)
+    # img = cv2.resize(img, (height, width), interpolation=cv2.INTER_LINEAR)
+    # img = img[:, 280: 480, :]
 
     return _process_input(img, scale_factor, output_stride)
 

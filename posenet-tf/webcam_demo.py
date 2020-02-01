@@ -109,13 +109,13 @@ def main():
                         present = None
                         count = -1
 
-                overlay_image = cv2.rectangle(overlay_image, (20 - 15, 380), (145 - 15, 440), (255, 255, 255), -1)
-                prediction = "One-hand OHP"#posenet.detect_workout_type(i)
-                cv2.putText(overlay_image, "{}".format(prediction), (8, 395 + 5), cv2.FONT_HERSHEY_SIMPLEX,
+                # Reporting workout and rep count
+                overlay_image = cv2.rectangle(overlay_image, (20 - 15, 380 + 35), (145 - 15, 440 + 35), (255, 255, 255), -1)
+                prediction = "Lateral Raises"#posenet.detect_workout_type(i)
+                cv2.putText(overlay_image, "{}".format(prediction), (8, 395 + 40), cv2.FONT_HERSHEY_SIMPLEX,
                             0.5, (0, 0, 0), 1, cv2.LINE_AA)
-
                 # Display rep count
-                cv2.putText(overlay_image, 'Rep count: {}'.format(rep_count), (8, 420 + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                cv2.putText(overlay_image, 'Rep count: {}'.format(rep_count), (8, 420 + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                             (0, 0, 0), 1, cv2.LINE_AA)
                 # overlay_image = posenet.draw_coord_grid(overlay_image)
                 cv2.imshow('', overlay_image)
