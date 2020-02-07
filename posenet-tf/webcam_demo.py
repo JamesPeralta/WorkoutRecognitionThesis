@@ -4,6 +4,7 @@ import argparse
 import statistics
 import pandas as pd
 import configparser
+import re
 import os
 import Janus_v1_0
 
@@ -22,14 +23,22 @@ parser.add_argument('--cam_width', type=int, default=1280)
 parser.add_argument('--cam_height', type=int, default=720)
 parser.add_argument('--scale_factor', type=float, default=0.7125)
 parser.add_argument('--file', type=str, default=None, help="Optionally use a video file instead of a live camera")
+parser.add_argument('--labels', type=str, default=None, help="Give the location of your labels file")
 parser.add_argument('--csv_loc', type=str, default=None)
 args = parser.parse_args()
 
+video = "../video_dataset/" + args.file
+
+stop_program = False
+statistics_df = []
+
 
 def main():
+    name_search = re.search("^.*/(.+)\\.", video)
+    file_name = name_search.group(1)
 
-    if args.file is not None:
-        cap = cv2.VideoCapture(args.file)
+    if video is not None:
+        cap = cv2.VideoCapture(video)
     else:
         cap = cv2.VideoCapture(args.cam_id)
     cap.set(3, args.cam_width)
@@ -43,12 +52,8 @@ def main():
     keypoints_detected = []
     people_detected = []
     all_keypoints_detected = []
-
     try:
-        up_rep = False
-        down_rep = False
         while True:
-
             # Run PoseNet
             overlay_image, num_keypoints_detected, people_location, num_of_people_detected = janus.get_poses()
 
@@ -71,10 +76,12 @@ def main():
             people_detected.append(num_of_people_detected)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                return False
+
     except Exception as e:
         print(e)
 
+    print("_________ {} Statistics _________".format(file_name))
     # Report all of the statistics
     print("Average number of key-points detected throughout the video: {}".format(statistics.mean(keypoints_detected)))
     missing_keypoints = len([i for i in keypoints_detected if i < 17])
@@ -84,18 +91,44 @@ def main():
     print("{} of the {} frames have atleast one extra keypoint".format(extra_keypoints,
                                                                         len(keypoints_detected)))
     print("There were at most {} person(s) detected in this video".format(max(people_detected)))
-    print("Final rep count is {}".format(rep_count))
     print("The video contained {} frames".format(frame_count))
     print('Average FPS: ', int(frame_count / (time.time() - start)))
 
-    # TODO: Compare rep count vs actual
+    labels = pd.read_csv(args.labels)
+    video_labels = labels.loc[labels["file_name"] == file_name]
+    actual_reps = video_labels["reps"].values
+    if len(actual_reps) > 0:
+        rep_search = re.search('(^\\d+)', actual_reps[0])
+        actual_reps = rep_search.group(1)
+    print("The expected amount of reps was:", actual_reps)
+    print("The predicted rep count is {}".format(rep_count))
+
     # TODO: Compare rep count vs actual
 
     # writing to file
-    print("Writing to file")
-    df = pd.DataFrame(all_keypoints_detected, columns=['keypoints'])
-    df.to_csv(args.csv_loc, header=['keypoints'])
+    # print("Writing to file")
+    # df = pd.DataFrame(all_keypoints_detected, columns=['keypoints'])
+    # df.to_csv(args.csv_loc, header=['keypoints'])
+
+    statistics_df.append({"avg_keypoints": statistics.mean(keypoints_detected),
+                          "frames_missing_points": missing_keypoints,
+                          "frames_extra_points": extra_keypoints,
+                          "people_detected": max(people_detected),
+                          "frames_in_video": frame_count,
+                          "fps": int(frame_count / (time.time() - start)),
+                          "expected_reps": actual_reps,
+                          "predicted_reps": rep_count})
+
+    return True
 
 
 if __name__ == "__main__":
-    main()
+    label_loc = "../video_dataset/test/"
+    for i in os.listdir(label_loc):
+        if ".mp4" in i:
+            video = label_loc + i
+            if main() is False:
+                break
+
+    eval_df = pd.DataFrame(statistics_df)
+    eval_df.to_csv("./eval_results.csv", index=False)
