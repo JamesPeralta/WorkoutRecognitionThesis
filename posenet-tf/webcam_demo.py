@@ -12,10 +12,6 @@ import Janus_v1_0
 config = configparser.ConfigParser()
 config.read('configurations.cfg')
 
-# CONSTANTS
-MIN_POSE_SCORE = 0.45
-MIN_KEYPOINT_SCORE = 0
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=int, default=101)
 parser.add_argument('--cam_id', type=int, default=0)
@@ -110,7 +106,13 @@ def main():
     # df = pd.DataFrame(all_keypoints_detected, columns=['keypoints'])
     # df.to_csv(args.csv_loc, header=['keypoints'])
 
-    statistics_df.append({"avg_keypoints": statistics.mean(keypoints_detected),
+    statistics_df.append({"file_name": file_name ,
+                          "height": int(config.get("VideoSize", "Height")),
+                          "width": int(config.get("VideoSize", "Width")),
+                          "roc_sampling": int(config.get("Algorithm", "ROC_Sampling")),
+                          "min_pose_score": float(config.get("Algorithm", "Min_Pose_Score")),
+                          "min_keypoint_score": float(config.get("Algorithm", "Min_Keypoint_Score")),
+                          "avg_keypoints": statistics.mean(keypoints_detected),
                           "frames_missing_points": missing_keypoints,
                           "frames_extra_points": extra_keypoints,
                           "people_detected": max(people_detected),
