@@ -99,7 +99,7 @@ def main():
     print("The expected amount of reps was:", actual_reps)
     print("The predicted rep count is {}".format(rep_count))
 
-    # TODO: Compare rep count vs actual
+    # TODO: Compare workout prediction vs actual
 
     # writing to file
     # print("Writing to file")

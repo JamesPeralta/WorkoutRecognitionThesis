@@ -14,3 +14,7 @@ ENV/
 
 # Model data
 *.h5
+
+# Video data
+**/*.MOV
+**/*.mp4
