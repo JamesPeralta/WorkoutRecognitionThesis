@@ -5,8 +5,8 @@ import json
 # API Endpoint
 URL = "http://localhost:3000/python/posenet"
 headers = {'content-type': "image/jpeg"}
-cap = cv2.VideoCapture("./bb-ohp.mov")
-
+# cap = cv2.VideoCapture("./squat10.mp4")
+cap = cv2.VideoCapture(0)
 
 radius = 3
 color = (255, 0, 0)
@@ -41,12 +41,13 @@ def draw_coordinates(keypoints, img):
 while(True):
     # Capture frame-by-frame
     ret, frame = cap.read()
-    frame = cv2.resize(frame, (250, 250))
+    frame = cv2.resize(frame, (500, 500))
     en_ret, en_frame = cv2.imencode('.jpg', frame)
 
     keypoints = get_keypoints(en_frame)
     frame = draw_coordinates(keypoints, frame)
 
+    frame = cv2.resize(frame, (500, 500))
     # Display the resulting frame
     cv2.imshow('frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
