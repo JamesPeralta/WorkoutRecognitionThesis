@@ -74,7 +74,6 @@ class Janus:
         return frame, num_keypoints_detected, people_location, num_of_people_detected
 
     def count_reps(self, people_location):
-        # self.all_keypoints_detected.append(people_location)
         if self.past is None:
             self.past = people_location
         elif self.count % self.roc_sampling == 0:
@@ -104,8 +103,7 @@ class Janus:
     def rate_of_change(self, past_keypoints, present_keypoints):
         increasing = False
         decreasing = False
-        # print(past_keypoints)
-        # print(present_keypoints)
+
         for index in range(0, len(keypoints_list)):
             # Retrieve datapoint for a body part
             past = past_keypoints[index][1]
@@ -154,3 +152,9 @@ class Janus:
             img = cv2.circle(img, (x_coord, y_coord), radius, color, thickness)
 
         return img
+
+    def get_model_config(self):
+        response = requests.get(url=URL + "/modelconfig")
+        response_json = json.loads(response.text)["config"]
+
+        return response_json
