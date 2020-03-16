@@ -3,7 +3,7 @@ import cv2
 cap = cv2.VideoCapture(0)
 
 
-video_size = (500, 500)
+video_size = (1280, 960)
 i = 0
 out = None
 capturing_video = False
@@ -11,9 +11,10 @@ capturing_video = False
 while(True):
     # Capture frame-by-frame
     ret, frame = cap.read()
+    # print(frame.shape)
 
     # Prepare frame
-    frame = cv2.resize(frame, video_size)
+    # frame = cv2.resize(frame, video_size)
 
     # If capturing the video
     if capturing_video:
@@ -35,7 +36,7 @@ while(True):
             print("Start capturing video")
             capturing_video = True
             video_name = str(input("Enter exercise type: "))
-            out = cv2.VideoWriter("{}_{}.mp4".format(video_name, i), cv2.VideoWriter_fourcc(*'MP4V'), 30.0, (500, 500))
+            out = cv2.VideoWriter("{}_{}.mp4".format(video_name, i), cv2.VideoWriter_fourcc(*'MP4V'), 20.0, (1280, 960))
 
 
 # When everything done, release the capture

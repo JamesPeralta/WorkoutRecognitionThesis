@@ -6,7 +6,7 @@ import pandas as pd
 import configparser
 import re
 import os
-import Janus_v1_0
+import Janus_v2_0
 
 # Load in configuration
 config = configparser.ConfigParser()
@@ -40,7 +40,7 @@ def main():
     cap.set(3, args.cam_width)
     cap.set(4, args.cam_height)
 
-    janus = Janus_v1_0.Janus(cap)
+    janus = Janus_v2_0.Janus(cap)
 
     start = time.time()
     frame_count = 0
@@ -106,20 +106,15 @@ def main():
     # df = pd.DataFrame(all_keypoints_detected, columns=['keypoints'])
     # df.to_csv(args.csv_loc, header=['keypoints'])
 
-    statistics_df.append({"file_name": file_name ,
-                          "height": int(config.get("VideoSize", "Height")),
-                          "width": int(config.get("VideoSize", "Width")),
-                          "roc_sampling": int(config.get("Algorithm", "ROC_Sampling")),
-                          "min_pose_score": float(config.get("Algorithm", "Min_Pose_Score")),
-                          "min_keypoint_score": float(config.get("Algorithm", "Min_Keypoint_Score")),
-                          "avg_keypoints": statistics.mean(keypoints_detected),
-                          "frames_missing_points": missing_keypoints,
-                          "frames_extra_points": extra_keypoints,
-                          "people_detected": max(people_detected),
-                          "frames_in_video": frame_count,
-                          "fps": int(frame_count / (time.time() - start)),
-                          "expected_reps": actual_reps,
-                          "predicted_reps": rep_count})
+    model_config = janus.get_model_config()
+    stats_dict = {"file_name": file_name ,
+                  "fps": int(frame_count / (time.time() - start)),
+                  "expected_reps": actual_reps,
+                  "predicted_reps": rep_count}
+    for param in model_config.keys():
+        stats_dict[param] = str(model_config[param])
+
+    statistics_df.append(stats_dict)
 
     return True
 
@@ -131,6 +126,7 @@ if __name__ == "__main__":
             video = label_loc + i
             if main() is False:
                 break
+            break
 
     eval_df = pd.DataFrame(statistics_df)
-    eval_df.to_csv("./eval_results.csv", index=False)
+    eval_df.to_csv("./eval_results_2.csv", index=False)

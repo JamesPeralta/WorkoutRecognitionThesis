@@ -56,6 +56,7 @@ class Janus:
     def get_poses(self):
         # Capture frame-by-frame
         ret, frame = self.cap.read()
+        # frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         height = int(config.get("VideoSize", "Height"))
         width = int(config.get("VideoSize", "Width"))
         frame = cv2.resize(frame, (height, width))
@@ -109,13 +110,13 @@ class Janus:
 
             # Calculate growth rates
             growth_rate = (present - past) / past
-            if growth_rate > 0.1:
+            if growth_rate > 0.3:
                 increasing = True
                 break
 
             # Calculate decay rates
             decay_rate = (past - present) / present
-            if decay_rate > 0.1:
+            if decay_rate > 0.3:
                 decreasing = True
                 break
 
@@ -157,3 +158,9 @@ class Janus:
         response_json = json.loads(response.text)["config"]
 
         return response_json
+
+    def reset_rep_count(self):
+        self.count = 0
+        self.up_rep = False
+        self.down_rep = False
+        self.rep_count = 0
