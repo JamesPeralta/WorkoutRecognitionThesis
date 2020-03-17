@@ -1,0 +1,1 @@
+{"version":3,"timestamp":1584406216807,"video_metadata":{"duration":478,"frame_rate":15,"height":960,"width":1280},"subject_blocks":[{"name":"workout","enter_frame":0,"exit_frame":478,"location":{"x":218,"y":107,"width":681,"height":792},"type":"ohp","events":[{"frame_num":110,"type":2,"data":"ohp"}]}]}
