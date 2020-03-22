@@ -29,11 +29,14 @@ def parse_annotation_file(annotation_locations, video_name):
     possible_files = os.listdir("{}/labels".format(annotation_locations))
     annotation_file = list(filter(lambda x: video_name in str(x), possible_files))[0]
 
-    with open("{}/labels/{}".format(annotation_locations, annotation_file)) as json_file:
+    json_loc = "{}/labels/{}".format(annotation_locations, annotation_file)
+    # print("Retrieving labels for: " + json_loc)
+    with open(json_loc) as json_file:
         data = json.load(json_file)
 
         # Retrieving the annotations
         annotations = data[ANNOTATIONS]
+        labeled_duration = data[METADATA][DURATION]
         annotation_arr = []
         for annotation in annotations:
             annotation_type = annotation[ANNOTATION_TYPE]
@@ -58,4 +61,4 @@ def parse_annotation_file(annotation_locations, video_name):
 
             frame_labels[str(frame)] = labels
 
-        return frame_labels
+        return labeled_duration, frame_labels

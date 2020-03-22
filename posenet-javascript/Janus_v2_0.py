@@ -56,6 +56,10 @@ class Janus:
     def get_poses(self):
         # Capture frame-by-frame
         ret, frame = self.cap.read()
+
+        if ret is False:
+            return False, None, None, None, None
+
         # frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         height = int(config.get("VideoSize", "Height"))
         width = int(config.get("VideoSize", "Width"))
@@ -70,7 +74,7 @@ class Janus:
         num_keypoints_detected = 16
         num_of_people_detected = 1
 
-        return frame, num_keypoints_detected, people_location, num_of_people_detected
+        return ret, frame, num_keypoints_detected, people_location, num_of_people_detected
 
     def count_reps(self, people_location):
         if self.past is None:
