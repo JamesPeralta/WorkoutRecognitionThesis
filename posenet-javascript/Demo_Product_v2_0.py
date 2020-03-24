@@ -1,25 +1,20 @@
 import cv2
-import requests
-import json
 import Janus_v2_0
 
 # API Endpoint
 URL = "http://localhost:3000/python/posenet"
 headers = {'content-type': "image/jpeg"}
-cap = cv2.VideoCapture("./new-train/ohp1.mp4")
-# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 janus = Janus_v2_0.Janus(cap)
 
 counting_reps = False
 rep_count = 0
 while(True):
-    # Capture frame-by-frame
-    ret, frame = cap.read()
-
     # Get and draw poses
-    frame, num_keypoints_detected, people_location, num_of_people_detected = janus.get_poses()
+    status, frame, num_keypoints_detected, people_location, num_of_people_detected = janus.get_poses()
+    if status is False:
+        break
 
-    frame = cv2.resize(frame, (500, 500))
     if (counting_reps):
         # Use PoseNet outout to detect repetitons
         rep_count = janus.count_reps(people_location)
@@ -34,7 +29,7 @@ while(True):
 
     cv2.imshow('frame', frame)
 
-    key_pressed = cv2.waitKey(1)
+    key_pressed = cv2.waitKey(15)
     if key_pressed & 0xFF == ord('q'):
         break
     # Hit "s" key
