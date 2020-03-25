@@ -2,6 +2,10 @@ import cv2
 import configparser
 import requests
 import json
+from tensorflow.keras.models import load_model
+from joblib import load
+import numpy as np
+from collections import deque
 
 # API Endpoint
 URL = "http://localhost:3000/python/posenet"
@@ -31,6 +35,12 @@ keypoints_list = [
     "rightAnkle", #17
 ]
 
+workout_map = {
+    "0": "nothing",
+    "1": "ohp",
+    "2": "squat"
+}
+
 radius = 3
 color = (255, 0, 0)
 thickness = 3
@@ -52,6 +62,11 @@ class Janus:
         self.keypoints_detected = []
         self.people_detected = []
         # self.all_keypoints_detected = []
+
+        # Model helpers
+        self.model = load_model('./Jahnus_v3_0_Configs/jahnus_v1_0.h5')
+        self.scaler = load('./Jahnus_v3_0_Configs/standard_scaler_jahnus_v1_0.save')
+        self.detection_queue = deque()
 
     def get_poses(self):
         # Capture frame-by-frame
@@ -77,7 +92,24 @@ class Janus:
         return ret, frame, num_keypoints_detected, people_location, num_of_people_detected
 
     def detect_workout(self, keypoints):
-        print("Detecting keypoints")
+        flattened_keypoints = keypoints.flatten().reshape(1, -1)
+        scaled_keypoints = self.scaler.transform(flattened_keypoints)
+
+        pred = self.model.predict(scaled_keypoints)
+        pred = np.argmax(pred, axis=1)[0]
+
+        self.detection_queue.append(pred)
+        if len(self.detection_queue) < 10:
+            return "LOADING MODEL"
+        self.detection_queue.popleft()
+
+        # Get Max of the last 10 predictions
+        last_detections = np.array(list(self.detection_queue))
+        pred = np.bincount(last_detections)
+        pred = str(np.argmax(pred))
+        label = workout_map[pred]
+
+        return label
 
     def count_reps(self, people_location):
         if self.past is None:
