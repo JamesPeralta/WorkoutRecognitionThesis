@@ -1,1 +1,0 @@
-{"version":3,"timestamp":1584482502507,"video_metadata":{"duration":431,"frame_rate":15,"height":960,"width":1280},"subject_blocks":[{"name":"workout","enter_frame":0,"exit_frame":431,"location":{"x":108,"y":55,"width":1016,"height":879},"type":"squat","events":[{"frame_num":40,"type":2,"data":"squat"}]}]}
