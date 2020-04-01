@@ -5,7 +5,7 @@ import numpy as np
 # API Endpoint
 URL = "http://localhost:3000/python/posenet"
 headers = {'content-type': "image/jpeg"}
-cap = cv2.VideoCapture("./ohp6.mp4")
+cap = cv2.VideoCapture("./ohp0.mp4")
 # cap = cv2.VideoCapture(1)
 janus = Janus_v4_0.Janus(cap)
 

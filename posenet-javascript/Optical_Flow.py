@@ -8,7 +8,7 @@ VIDEO_SIZE = (300, 300)
 LK_PARAMS = dict(winSize=(15, 15), maxLevel=2, criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 COLOR = (0, 255, 0)
 PIXEL_DISPLACEMENT = 2.5
-DISPLACED_THRES = 75
+DISPLACED_THRES = 50
 POINT_STRIDE = 5 # Will generate sparse features 5 pixels apart
 
 
@@ -68,12 +68,10 @@ def calculate_optical_flow(prev_t, next_t, frame=None):
     # Only draw features that have moved
     for i, (new, old) in enumerate(zip(good_features_t_1[moved_indices], good_features_t[moved_indices])):
         # Returns a contiguous flattened array as (x, y) coordinates for new point
-        a, b = new.ravel()
-        a *= 1.66666667
-        b *= 1.66666667
+        a, b = tuple(map(int, (new.ravel() * 1.66666667)))
+        c, d = tuple(map(int, (old.ravel() * 1.66666667)))
 
-        # Draws filled circle (thickness of -1) at new position with green color and radius of 3
-        frame = cv2.circle(frame, (int(a), int(b)), 3, COLOR, -1)
+        frame = cv2.arrowedLine(frame, (a - 2, b - 2), (c + 2, d + 2), COLOR, 2, tipLength=0.3)
 
     return result, frame
 

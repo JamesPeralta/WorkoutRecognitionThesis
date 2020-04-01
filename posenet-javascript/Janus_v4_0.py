@@ -42,9 +42,20 @@ workout_map = {
     "2": "squat"
 }
 
+# Store it front and back to allow reverse look ups
+rep_phase_map = {
+    "0": "stationary",
+    "1": "increasing",
+    "2": "decreasing",
+    "stationary": "0",
+    "increasing": "1",
+    "decreasing": "2"
+}
+
 radius = 3
 color = (255, 0, 0)
 thickness = 3
+
 
 class Janus:
     def __init__(self, stream):
@@ -55,8 +66,8 @@ class Janus:
         self.count = 0
         self.past = None
         self.roc_sampling = int(config.get("Algorithm", "ROC_Sampling"))
-        self.up_rep = False
-        self.down_rep = False
+        self.increasing = False
+        self.decreasing = False
         self.rep_count = 0
 
         # Remebering what Janus has seen so far
@@ -68,6 +79,8 @@ class Janus:
         self.model = load_model('./Jahnus_v3_0_Configs/jahnus_v1_0.h5')
         self.scaler = load('./Jahnus_v3_0_Configs/standard_scaler_jahnus_v1_0.save')
         self.detection_queue = deque()
+        self.rep_state_queue = deque()
+        self.last_phase = "stationary"
 
         # Variables for resizing video
         self.vid_size = (int(config.get("VideoSize", "Height")), int(config.get("VideoSize", "Width")))
@@ -114,7 +127,9 @@ class Janus:
 
         self.detection_queue.append(pred)
         if len(self.detection_queue) < 10:
-            return "LOADING MODEL"
+            print("INITIALIZING WORKOUT DETECTION")
+            return "nothing"
+
         self.detection_queue.popleft()
 
         # Get Max of the last 10 predictions
@@ -129,16 +144,35 @@ class Janus:
         # Calculate the rate of change
         result, frame = flow.calculate_optical_flow(self.prev_frame, next_frame, frame)
 
-        if result == "increasing":
-            self.up_rep = True
-        elif result == "decreasing":
-            self.down_rep = True
-        else:
-            if self.up_rep is True and self.down_rep is True:
-                self.rep_count += 1
-                self.up_rep = False
-                self.down_rep = False
+        self.rep_state_queue.append(rep_phase_map[result])
+        if len(self.rep_state_queue) < 6:
+            print("INITIALIZING REP COUNT")
+            return self.rep_count, frame
 
+        self.rep_state_queue.popleft()
+
+        # Get Max of the last 10 rep predictions
+        last_detections = np.array(list(map(lambda x: int(x), list(self.rep_state_queue))))
+        pred = np.bincount(last_detections)
+        pred = rep_phase_map[str(np.argmax(pred))]
+
+        if self.last_phase != pred:
+            if self.increasing is True and self.decreasing is True:
+                self.rep_count += 1
+                self.increasing = False
+                self.decreasing = False
+
+                self.last_phase = pred
+                self.set_prev_frame(next_frame)
+
+                return self.rep_count, frame
+
+        if pred == "increasing":
+            self.increasing = True
+        elif pred == "decreasing":
+            self.decreasing = True
+
+        self.last_phase = pred
         self.set_prev_frame(next_frame)
 
         return self.rep_count, frame
@@ -177,6 +211,6 @@ class Janus:
 
     def reset_rep_count(self):
         self.count = 0
-        self.up_rep = False
-        self.down_rep = False
+        self.increasing = False
+        self.decreasing = False
         self.rep_count = 0
