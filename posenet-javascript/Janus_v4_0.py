@@ -89,10 +89,11 @@ class Janus:
     def get_frame(self):
         # Capture frame-by-frame
         ret, frame = self.cap.read()
-        frame = cv2.resize(frame, self.vid_size)
 
         if ret is False:
             return False, None
+
+        frame = cv2.resize(frame, self.vid_size)
 
         return ret, frame
 
@@ -104,7 +105,7 @@ class Janus:
         ret, raw_frame = self.get_frame()
 
         if ret is False:
-            return None, None, None
+            return None, None, None, None, None
 
         en_ret, en_frame = cv2.imencode('.jpg', raw_frame)
 

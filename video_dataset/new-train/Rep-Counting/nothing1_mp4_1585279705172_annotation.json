@@ -1,0 +1,1 @@
+{"version":3,"timestamp":1585279705171,"video_metadata":{"duration":549,"frame_rate":15,"height":960,"width":1280},"subject_blocks":[{"name":"motion","enter_frame":0,"exit_frame":549,"location":{"x":3,"y":7,"width":1264,"height":944},"type":"stationary","events":[{"frame_num":49,"type":2,"data":"n/a"}]}]}

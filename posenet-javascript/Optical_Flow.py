@@ -7,9 +7,9 @@ VIDEO_SIZE = (300, 300)
 # Parameters for Lucas-Kanade optical flow
 LK_PARAMS = dict(winSize=(15, 15), maxLevel=2, criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 COLOR = (0, 255, 0)
-PIXEL_DISPLACEMENT = 2.5
+PIXEL_DISPLACEMENT = 1.75
 DISPLACED_THRES = 50
-POINT_STRIDE = 5 # Will generate sparse features 5 pixels apart
+POINT_STRIDE = 5  # Will generate sparse features 5 pixels apart
 
 
 def generate_sparse_features():
@@ -40,14 +40,17 @@ def find_displaced_features(prev_f, next_f):
     decreasing_size = decreasing.size
 
     if increasing_size == decreasing_size:
-        return "stationary", []
+        return "stationary", [], 0
     elif increasing_size > decreasing_size:
-        return "increasing", increasing
+        return "increasing", increasing, increasing_size
     else:
-        return "decreasing", decreasing
+        return "decreasing", decreasing, decreasing_size
 
 
 def calculate_optical_flow(prev_t, next_t, frame=None):
+    # Copy Frame
+    frame = np.copy(frame)
+
     # Convert these to gray because we only need luminisence layer
     prev_gray = cv2.cvtColor(prev_t, cv2.COLOR_BGR2GRAY)
     next_gray = cv2.cvtColor(next_t, cv2.COLOR_BGR2GRAY)
@@ -63,17 +66,19 @@ def calculate_optical_flow(prev_t, next_t, frame=None):
     good_features_t_1 = prev_features[status == 1]  # Features at t-1
     good_features_t = next_features[status == 1]  # Features a t
 
-    result, moved_indices = find_displaced_features(good_features_t_1, good_features_t)
+    result, moved_indices, moved_count = find_displaced_features(good_features_t_1, good_features_t)
 
     # Only draw features that have moved
     for i, (new, old) in enumerate(zip(good_features_t_1[moved_indices], good_features_t[moved_indices])):
         # Returns a contiguous flattened array as (x, y) coordinates for new point
-        a, b = tuple(map(int, (new.ravel() * 1.66666667)))
-        c, d = tuple(map(int, (old.ravel() * 1.66666667)))
+        # a, b = tuple(map(int, (new.ravel() * 1.66666667)))
+        # c, d = tuple(map(int, (old.ravel() * 1.66666667)))
+        a, b = tuple(map(int, new.ravel()))
+        c, d = tuple(map(int, old.ravel()))
 
         frame = cv2.arrowedLine(frame, (a - 2, b - 2), (c + 2, d + 2), COLOR, 2, tipLength=0.3)
 
-    return result, frame
+    return result, frame, moved_count
 
 
 # cap = cv2.VideoCapture("./ohp0.mp4")
